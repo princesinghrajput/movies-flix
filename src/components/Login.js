@@ -1,63 +1,72 @@
 import React, { useRef, useState } from "react";
 import Header from "./Header";
 import { checkValidData } from "../utils/validate";
-import { createUserWithEmailAndPassword,signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "../utils/firebase";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
-  const [isSignInForm, setisSignInForm]=useState(true);
-  const [erroMessage,seterrorMessage]= useState(null)
+  const [isSignInForm, setisSignInForm] = useState(true);
+  const [erroMessage, setErrorMessage] = useState(null);
+
+  const name = useRef(null);
   const email = useRef(null);
   const password = useRef(null);
+  const navigate = useNavigate();
 
-
-  const toggleSignInForm=()=>{
+  const toggleSignInForm = () => {
     setisSignInForm(!isSignInForm);
-  }
+  };
 
-  const handleButtonClick =()=>{
-
-    
+  const handleButtonClick = () => {
     //validate the form data
-    const message= checkValidData(email.current.value,password.current.value);
-    seterrorMessage(message)
-    if(message) return;
-
-
-    if(!isSignInForm){
-      createUserWithEmailAndPassword(auth, email.current.value,password.current.value)
-  .then((userCredential) => {
-    // Signed up 
-    const user = userCredential.user;
-    console.log(user);
-    alert("Signed Up")
-  })
-  .catch((error) => {
-    const errorCode = error.code;
-    const errorMessage = error.message;
-    // ..
-    seterrorMessage(errorCode+ "-" + errorMessage)
-  });
-
-
-    }else{
-      signInWithEmailAndPassword(auth, email.current.value,password.current.value)
-  .then((userCredential) => {
-    // Signed in 
-    const user = userCredential.user;
-    console.log(user);
-    // ...
-  })
-  .catch((error) => {
-    const errorCode = error.code;
-    const errorMessage = error.message;
-    seterrorMessage(errorCode+ "-" + errorMessage)
-  });
-
+    const emailValue = email?.current?.value;
+    const passwordValue = password?.current?.value;
+    
+    if (!emailValue || !passwordValue) {
+      setErrorMessage("Please fill in all the required fields.");
+      return;
     }
 
-  
-  }
+    const message = checkValidData(emailValue, passwordValue);
+    setErrorMessage(message);
+
+    if (message) return;
+
+    if (!isSignInForm) {
+      createUserWithEmailAndPassword(auth, emailValue, passwordValue)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          updateProfile(user, {
+            displayName: name?.current?.value || '',
+            photoURL: "https://avatars.githubusercontent.com/u/83268492?v=4"
+          }).then(() => {
+            console.log('Profile updated successfully');
+            navigate('/browse');
+          }).catch((error) => {
+            setErrorMessage(error.message);
+          });
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          setErrorMessage(`${errorCode} - ${errorMessage}`);
+        });
+    } else {
+      signInWithEmailAndPassword(auth, emailValue, passwordValue)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          console.log(user);
+          console.log("Signed In");
+          navigate('/browse');
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          setErrorMessage(`${errorCode} - ${errorMessage}`);
+        });
+    }
+  };
   return (
     <div>
       <Header />
@@ -74,6 +83,7 @@ const Login = () => {
 
           <h1 className="font-bold text-3xl py-4">{isSignInForm ? "Sign In" : "Sign Up"}</h1>
           {!isSignInForm && <input
+          ref={name}
             type="text"
             placeholder="Full Name"
             className="p-4 my-4 w-full bg-gray-700"
