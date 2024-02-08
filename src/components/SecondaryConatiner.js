@@ -1,8 +1,10 @@
 import React from 'react'
+import VideoBackground from './VideoBackground'
 
 const SecondaryConatiner = () => {
   return (
-    <div>SecondaryConatiner</div>
+    <div>
+    </div>
   )
 }
 
